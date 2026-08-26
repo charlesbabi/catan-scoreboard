@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { postGame } from '../lib/api.js'
 import { validateForm } from '../lib/validateForm.js'
+import { SeasonSelect, useSeasons, latestSeasonId } from './SeasonPicker.jsx'
 
 export default function NewGameForm({ adminKey, onKeyInvalid, onSaved }) {
   const [date, setDate] = useState('')
+  const seasons = useSeasons()
+  const [selected, setSelected] = useState(null)
   const [rows, setRows] = useState([{ name: '', points: '' }])
   const [status, setStatus] = useState(null)
 
@@ -20,6 +23,7 @@ export default function NewGameForm({ adminKey, onKeyInvalid, onSaved }) {
     try {
       await postGame(adminKey, {
         date: date.trim() || undefined,
+        seasonId: seasons?.length ? (selected ?? latestSeasonId(seasons)) : undefined,
         players: rows.map((r) => ({ name: r.name.trim(), points: Number(r.points.trim()) })),
       })
       setRows([{ name: '', points: '' }])
@@ -41,6 +45,9 @@ export default function NewGameForm({ adminKey, onKeyInvalid, onSaved }) {
         Fecha (opcional)
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </label>
+      {seasons !== null && seasons.length > 0 && (
+        <SeasonSelect seasons={seasons} value={selected ?? latestSeasonId(seasons)} onChange={(e) => setSelected(Number(e.target.value))} />
+      )}
       {rows.map((row, i) => (
         <div class="row" key={i}>
           <input

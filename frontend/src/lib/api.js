@@ -11,19 +11,36 @@ async function request(path, options) {
   return body
 }
 
-export function fetchScoreboard() {
-  return request('/api/scoreboard')
+function seasonQuery(seasonId) {
+  return seasonId == null ? '' : `?season=${seasonId}`
 }
 
-export function fetchGames() {
-  return request('/api/games')
+export function fetchScoreboard(seasonId) {
+  return request(`/api/scoreboard${seasonQuery(seasonId)}`)
 }
 
-export function postGame(key, { date, players }) {
+export function fetchGames(seasonId) {
+  return request(`/api/games${seasonQuery(seasonId)}`)
+}
+
+export function fetchSeasons() {
+  return request('/api/seasons')
+}
+
+export function postSeason(key, name) {
+  return request('/api/seasons', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-admin-key': key },
+    body: JSON.stringify({ name }),
+  })
+}
+
+export function postGame(key, { date, players, seasonId }) {
+  const body = seasonId == null ? { date, players } : { date, players, seasonId }
   return request('/api/games', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-admin-key': key },
-    body: JSON.stringify({ date, players }),
+    body: JSON.stringify(body),
   })
 }
 

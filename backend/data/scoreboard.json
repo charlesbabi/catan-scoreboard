@@ -119,5 +119,15 @@
       ]
     }
   ],
-  "adminKeyHash": "5a30976afc62b3368a95ddbc6efe1168cf90b5d5cef7741b11edecf5b32916ae"
+  "adminKeyHash": "5a30976afc62b3368a95ddbc6efe1168cf90b5d5cef7741b11edecf5b32916ae",
+  "seasons": [
+    {
+      "id": 1,
+      "name": "Temporada 2026-1"
+    },
+    {
+      "id": 2,
+      "name": "Temporada 2026-2"
+    }
+  ]
 }

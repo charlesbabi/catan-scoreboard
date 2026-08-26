@@ -39,32 +39,45 @@ export function createStore(filePath) {
   function readDoc() {
     try {
       const raw = JSON.parse(readFileSync(filePath, 'utf8'))
-      return { games: Array.isArray(raw.games) ? raw.games : [], adminKeyHash: typeof raw.adminKeyHash === 'string' ? raw.adminKeyHash : undefined }
+      return {
+        games: Array.isArray(raw.games) ? raw.games : [],
+        adminKeyHash: typeof raw.adminKeyHash === 'string' ? raw.adminKeyHash : undefined,
+        seasons: Array.isArray(raw.seasons) ? raw.seasons : [],
+      }
     } catch {
-      return { games: [], adminKeyHash: undefined }
+      return { games: [], adminKeyHash: undefined, seasons: [] }
     }
   }
 
   function writeDoc(doc) {
-    writeFileSync(filePath, JSON.stringify({ games: doc.games, adminKeyHash: doc.adminKeyHash ?? sha256(DEFAULT_ADMIN_KEY) }, null, 2), 'utf8')
+    writeFileSync(filePath, JSON.stringify({ games: doc.games, adminKeyHash: doc.adminKeyHash ?? sha256(DEFAULT_ADMIN_KEY), seasons: doc.seasons ?? [] }, null, 2), 'utf8')
   }
 
   return {
     path: filePath,
     getGames: () => readDoc().games,
+    getSeasons: () => readDoc().seasons,
     getAdminKeyHash: () => readDoc().adminKeyHash ?? sha256(DEFAULT_ADMIN_KEY),
     setAdminKey(key) {
       const doc = readDoc()
       doc.adminKeyHash = sha256(key)
       writeDoc(doc)
     },
-    addGame({ date, players }) {
+    addGame({ date, players, seasonId }) {
       const doc = readDoc()
       const id = doc.games.reduce((m, g) => Math.max(m, g.id), 0) + 1
-      const game = { id, date, players }
+      const game = { id, date, players, seasonId: seasonId ?? null }
       doc.games.push(game)
       writeDoc(doc)
       return game
+    },
+    addSeason({ name }) {
+      const doc = readDoc()
+      const id = doc.seasons.reduce((m, s) => Math.max(m, s.id), 0) + 1
+      const season = { id, name }
+      doc.seasons.push(season)
+      writeDoc(doc)
+      return season
     },
   }
 }

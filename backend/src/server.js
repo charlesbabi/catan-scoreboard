@@ -1,7 +1,7 @@
 import http from 'node:http'
 import { timingSafeEqual } from 'node:crypto'
 import { computeScoreboard } from './scoreboard.js'
-import { validateGame } from './validate.js'
+import { validateGame, validateSeason } from './validate.js'
 import { sha256 } from './storage.js'
 
 function cors(res) {
@@ -29,6 +29,22 @@ function readBody(req) {
   })
 }
 
+// ponytail: untagged games (sin seasonId) cuentan para la primera temporada; si el grupo quiere re-etiquetado, agregar edición de partida
+function seasonView(store, rawSeason) {
+  const seasons = store.getSeasons()
+  const firstId = seasons.length ? Math.min(...seasons.map((s) => s.id)) : null
+  let id
+  if (rawSeason != null) {
+    id = Number(rawSeason)
+    if (!Number.isInteger(id) || id < 1 || !seasons.some((s) => s.id === id)) return { invalid: true }
+  } else if (seasons.length) {
+    id = Math.max(...seasons.map((s) => s.id))
+  }
+  const games = store.getGames()
+  if (id === undefined) return { games }
+  return { games: games.filter((g) => g.seasonId === id || (g.seasonId == null && id === firstId)) }
+}
+
 // ponytail: timing-constant key compare, no rate limiting; add per-IP throttle if this ever leaves the LAN
 function keyMatches(storedHash, key) {
   if (typeof key !== 'string') return false
@@ -49,12 +65,27 @@ export function createServer(store) {
     }
 
     if (req.method === 'GET' && pathname === '/api/scoreboard') {
-      sendJson(res, 200, computeScoreboard(store.getGames()))
+      const view = seasonView(store, new URL(req.url, 'http://localhost').searchParams.get('season'))
+      if (view.invalid) {
+        sendJson(res, 404, { error: 'Temporada no encontrada' })
+        return
+      }
+      sendJson(res, 200, computeScoreboard(view.games))
       return
     }
 
     if (req.method === 'GET' && pathname === '/api/games') {
-      sendJson(res, 200, [...store.getGames()].reverse())
+      const view = seasonView(store, new URL(req.url, 'http://localhost').searchParams.get('season'))
+      if (view.invalid) {
+        sendJson(res, 404, { error: 'Temporada no encontrada' })
+        return
+      }
+      sendJson(res, 200, view.games.map((g) => ({ ...g, seasonId: g.seasonId ?? null })).reverse())
+      return
+    }
+
+    if (req.method === 'GET' && pathname === '/api/seasons') {
+      sendJson(res, 200, store.getSeasons())
       return
     }
 
@@ -112,9 +143,46 @@ export function createServer(store) {
         sendJson(res, 400, invalid)
         return
       }
+      const seasons = store.getSeasons()
+      let seasonId
+      if (payload.seasonId !== undefined) {
+        if (typeof payload.seasonId !== 'number' || !Number.isInteger(payload.seasonId)) {
+          sendJson(res, 400, { error: 'seasonId debe ser un número' })
+          return
+        }
+        if (!seasons.some((s) => s.id === payload.seasonId)) {
+          sendJson(res, 400, { error: 'la temporada indicada no existe' })
+          return
+        }
+        seasonId = payload.seasonId
+      } else if (seasons.length) {
+        seasonId = Math.max(...seasons.map((s) => s.id))
+      }
       const date = typeof payload.date === 'string' && payload.date.trim() !== '' ? payload.date.trim() : today()
       const players = payload.players.map((p) => ({ name: p.name.trim(), points: p.points }))
-      sendJson(res, 201, store.addGame({ date, players }))
+      sendJson(res, 201, store.addGame({ date, players, seasonId: seasonId ?? null }))
+      return
+    }
+
+    if (req.method === 'POST' && pathname === '/api/seasons') {
+      const key = req.headers['x-admin-key']
+      if (!keyMatches(store.getAdminKeyHash(), key)) {
+        sendJson(res, 401, { error: 'Clave de administrador requerida' })
+        return
+      }
+      let payload
+      try {
+        payload = JSON.parse(await readBody(req))
+      } catch {
+        sendJson(res, 400, { error: 'body must be valid JSON' })
+        return
+      }
+      const invalid = validateSeason(payload)
+      if (invalid) {
+        sendJson(res, 400, invalid)
+        return
+      }
+      sendJson(res, 201, store.addSeason({ name: payload.name.trim() }))
       return
     }
 

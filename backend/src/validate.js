@@ -20,3 +20,13 @@ export function validateGame(payload) {
   }
   return null
 }
+
+export function validateSeason(payload) {
+  if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+    return { error: 'body must be a JSON object' }
+  }
+  if (typeof payload.name !== 'string' || payload.name.trim() === '') {
+    return { error: 'name must be a non-empty string' }
+  }
+  return null
+}

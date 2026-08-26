@@ -2,8 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, Route, Routes } from 'react-router-dom'
 import { fetchScoreboard, fetchGames } from './lib/api.js'
 import { getSessionKey, clearSessionKey } from './lib/session.js'
+import { SeasonSelect, useSeasons, latestSeasonId } from './components/SeasonPicker.jsx'
 import KeyGate from './components/KeyGate.jsx'
 import NewGameForm from './components/NewGameForm.jsx'
+import SeasonsSection from './components/SeasonsSection.jsx'
 import ChangeKeySection from './components/ChangeKeySection.jsx'
 
 const PODIUM = [
@@ -78,21 +80,23 @@ function History({ games }) {
   )
 }
 
-function useApiData() {
+// seasonId: undefined = aún no se conocen las temporadas (no fetch); null = sin temporadas (fetch global); number = ?season=<id>
+function useApiData(seasonId) {
   const [scoreboard, setScoreboard] = useState(null)
   const [games, setGames] = useState(null)
   const [error, setError] = useState(null)
 
   const refresh = useCallback(async () => {
+    if (seasonId === undefined) return
     try {
-      const [sb, gs] = await Promise.all([fetchScoreboard(), fetchGames()])
+      const [sb, gs] = await Promise.all([fetchScoreboard(seasonId), fetchGames(seasonId)])
       setScoreboard(sb)
       setGames(gs)
       setError(null)
     } catch (err) {
       setError(`No se pudo conectar con la API: ${err.message}`)
     }
-  }, [])
+  }, [seasonId])
 
   useEffect(() => {
     refresh()
@@ -102,7 +106,10 @@ function useApiData() {
 }
 
 function PublicView() {
-  const { scoreboard, games, error } = useApiData()
+  const seasons = useSeasons()
+  const [selected, setSelected] = useState(null)
+  const seasonId = seasons === null ? undefined : selected ?? latestSeasonId(seasons)
+  const { scoreboard, games, error } = useApiData(seasonId)
   return (
     <>
       <div class="topbar">
@@ -111,7 +118,12 @@ function PublicView() {
       </div>
       {error && <div class="banner">{error}</div>}
       <section>
-        <h2>Ranking</h2>
+        <div class="section-head">
+          <h2>Ranking</h2>
+          {seasons !== null && seasons.length > 0 && (
+            <SeasonSelect seasons={seasons} value={seasonId} onChange={(e) => setSelected(Number(e.target.value))} />
+          )}
+        </div>
         <Ranking rows={scoreboard} />
       </section>
       <section>
@@ -124,7 +136,7 @@ function PublicView() {
 
 function ProtectedView() {
   const [gateNonce, setGateNonce] = useState(0)
-  const { refresh } = useApiData()
+  const { refresh } = useApiData(null)
 
   const handleKeyInvalid = () => {
     clearSessionKey()
@@ -136,6 +148,7 @@ function ProtectedView() {
       <Link to="/" class="back-link">← Volver al scoreboard</Link>
       <KeyGate key={gateNonce}>
         <NewGameForm adminKey={getSessionKey()} onKeyInvalid={handleKeyInvalid} onSaved={refresh} />
+        <SeasonsSection adminKey={getSessionKey()} onKeyInvalid={handleKeyInvalid} />
         <ChangeKeySection />
       </KeyGate>
     </div>

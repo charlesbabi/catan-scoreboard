@@ -1,11 +1,12 @@
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createStore } from '../src/storage.js'
 import { createServer } from '../src/server.js'
 
-export async function withServer(fn) {
+export async function withServer(fn, { seed = true } = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'scoreboard-api-'))
+  if (!seed) await writeFile(join(dir, 'scoreboard.json'), JSON.stringify({ games: [], seasons: [] }), 'utf8')
   const store = createStore(join(dir, 'scoreboard.json'))
   const server = createServer(store)
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))

@@ -95,3 +95,70 @@ test('recuperacion: escritura valida tras corrupcion deja JSON valido con la par
 test('seed constante exportada coincide con lo escrito (sanity)', async () => {
   assert.ok(Array.isArray(SEED_GAMES) && SEED_GAMES.length >= 3)
 })
+
+test('seasons: archivo sin campo seasons se trata como lista vacia', async () => {
+  const { dir, store, cleanup } = await tmpStore()
+  try {
+    await writeFile(store.path, JSON.stringify({ games: [] }), 'utf8')
+    assert.deepEqual(store.getSeasons(), [])
+  } finally {
+    await cleanup()
+  }
+})
+
+test('seasons: addSeason crea {id, name} con id auto-incremental y persiste junto con games y adminKeyHash', async () => {
+  const { store, cleanup } = await tmpStore()
+  try {
+    const created = store.addSeason({ name: 'Temporada 2026-1' })
+    assert.equal(created.id, 1, 'first season id must be 1')
+    assert.equal(created.name, 'Temporada 2026-1')
+    const second = store.addSeason({ name: 'Temporada 2026-2' })
+    assert.equal(second.id, 2, 'id must be max+1')
+    const raw = JSON.parse(await readFile(store.path, 'utf8'))
+    assert.deepEqual(raw.seasons, [{ id: 1, name: 'Temporada 2026-1' }, { id: 2, name: 'Temporada 2026-2' }])
+    assert.equal(raw.games.length, 3, 'games must be preserved')
+    assert.ok(typeof raw.adminKeyHash === 'string', 'adminKeyHash must be preserved')
+  } finally {
+    await cleanup()
+  }
+})
+
+test('addGame: persiste seasonId cuando se pasa y null cuando no', async () => {
+  const { store, cleanup } = await tmpStore()
+  try {
+    const created = store.addGame({ date: '2026-08-24', players: [{ name: 'Ana', points: 10 }], seasonId: 1 })
+    assert.equal(created.seasonId, 1)
+    const created2 = store.addGame({ date: '2026-08-25', players: [{ name: 'Ana', points: 5 }] })
+    assert.equal(created2.seasonId, null)
+    const raw = JSON.parse(await readFile(store.path, 'utf8'))
+    assert.equal(raw.games[raw.games.length - 2].seasonId, 1)
+    assert.equal(raw.games[raw.games.length - 1].seasonId, null)
+  } finally {
+    await cleanup()
+  }
+})
+
+test('archivo antiguo sin seasonId: la lectura no falla y se trata como partida sin temporada', async () => {
+  const { store, cleanup } = await tmpStore()
+  try {
+    await writeFile(store.path, JSON.stringify({ games: [{ id: 1, date: '2026-01-01', players: [{ name: 'Z', points: 10 }] }] }), 'utf8')
+    const games = store.getGames()
+    assert.equal(games.length, 1)
+    assert.equal(games[0].seasonId, undefined, 'campo ausente se trata como sin temporada')
+  } finally {
+    await cleanup()
+  }
+})
+
+test('seasons: crear temporada no afecta la lectura de partidas ni de adminKeyHash', async () => {
+  const { store, cleanup } = await tmpStore()
+  try {
+    const gamesBefore = store.getGames()
+    const hashBefore = store.getAdminKeyHash()
+    store.addSeason({ name: 'Temporada 2026-1' })
+    assert.deepEqual(store.getGames(), gamesBefore)
+    assert.equal(store.getAdminKeyHash(), hashBefore)
+  } finally {
+    await cleanup()
+  }
+})
