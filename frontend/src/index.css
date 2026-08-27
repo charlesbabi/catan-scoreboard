@@ -7,6 +7,7 @@ body {
   font-family: system-ui, sans-serif;
   background: linear-gradient(160deg, #0f1722 0%, #16233a 45%, #1d3a4a 100%);
   min-height: 100vh;
+  min-height: 100dvh;
   color: #e8edf3;
 }
 
@@ -14,7 +15,7 @@ main,
 .protected {
   max-width: 860px;
   margin: 0 auto;
-  padding: 28px 16px 56px;
+  padding: 28px clamp(16px, 4vw, 32px) 56px;
 }
 
 .topbar {
@@ -404,4 +405,43 @@ form button.primary,
 
 .keychange form {
   margin-top: 12px;
+}
+
+/* ---- Móvil (≤ 640px) ---- */
+@media (max-width: 640px) {
+  .podium {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .podium-card {
+    min-width: 0;
+    padding: 12px 8px;
+  }
+
+  .podium-card.podium-gold {
+    transform: none;
+  }
+
+  .podium-name {
+    font-size: 0.95rem;
+  }
+
+  .podium-points {
+    font-size: 1.7rem;
+  }
+
+  .podium-gold .podium-points {
+    font-size: 2rem;
+  }
+
+  th,
+  td {
+    padding: 8px 10px;
+  }
+
+  table.card {
+    font-size: 0.92rem;
+  }
 }

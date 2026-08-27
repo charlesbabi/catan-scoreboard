@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "plane": {
+      "command": "uvx",
+      "args": ["plane-mcp-server", "stdio"],
+      "env": {
+        "PLANE_API_KEY": "plane_api_a00b4794776847718104a6670b7e0496",
+        "PLANE_WORKSPACE_SLUG": "Ecosistema mascotas",
+        "PLANE_BASE_URL": "https://tasks.berenjena.ar/"
+      }
+    }
+  }
+}
