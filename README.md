@@ -39,8 +39,16 @@ npm run dev
 
 ```bash
 docker compose up --build
-# Frontend: http://localhost:8080
+# Frontend: http://localhost:8090
 # Backend:  http://localhost:3001
+```
+
+Los datos persisten en el volumen named `catan-data`, independiente del código (sobrevive a redeploys). Para migrar datos de una instalación previa con bind mount (`./backend/data`):
+
+```bash
+docker compose up -d
+docker compose cp backend/data/scoreboard.json backend:/app/data/scoreboard.json
+docker compose restart backend
 ```
 
 ## Environment Variables (backend)

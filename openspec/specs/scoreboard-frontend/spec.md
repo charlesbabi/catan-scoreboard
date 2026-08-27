@@ -71,15 +71,19 @@ El frontend SHALL mostrar el formulario para registrar una nueva partida (fecha 
 - **THEN** la UI muestra el mensaje de error devuelto por la API
 
 ### Requirement: Levantamiento con Docker Compose
-El sistema SHALL incluir un `docker-compose.yml` en la raíz que levanta el backend (puerto 3001) y el frontend (puerto 8080) en una misma red, donde el frontend sirve la UI en el mismo origen y revierte el tráfico de `/api` hacia el servicio backend (reverse proxy), de modo que la UI funciona desde cualquier host, y el directorio de datos del backend se monta como volumen para persistir el JSON entre ejecuciones.
+El sistema SHALL incluir un `docker-compose.yml` en la raíz que levanta el backend (puerto 3001) y el frontend (puerto 8090) en una misma red, donde el frontend sirve la UI en el mismo origen y revierte el tráfico de `/api` hacia el servicio backend (reverse proxy), de modo que la UI funciona desde cualquier host. Los datos del backend SHALL persistir en un volumen named de Docker montado en el directorio de datos, independiente del directorio del repositorio, de modo que el JSON persista entre ejecuciones de los contenedores y entre redesplegues del código (rebuild de la imagen o reemplazo del repositorio con un clone nuevo). El archivo de datos no se incluye en el repositorio: se genera al primer arranque con el seed de ejemplo.
 
 #### Scenario: docker compose up
 - **WHEN** se ejecuta `docker compose up --build`
-- **THEN** la UI es accesible en el puerto 8080 y muestra el scoreboard servido por el backend en el puerto 3001
+- **THEN** la UI es accesible en el puerto 8090 y muestra el scoreboard servido por el backend en el puerto 3001
 
 #### Scenario: Persistencia de datos
 - **WHEN** se registra una partida y luego se reinician los contenedores
 - **THEN** la partida sigue presente al recargar la UI
+
+#### Scenario: Redeploy no pierde datos
+- **WHEN** el código se redespliega en el servidor (rebuild de la imagen o reemplazo del repositorio con un clone nuevo) y se levantan los contenedores
+- **THEN** las partidas y temporadas registradas previamente siguen presentes en la UI
 
 ### Requirement: Pantalla de clave de administrador
 La URL `/nueva-partida` SHALL mostrar primero una pantalla de acceso con un campo de clave cuando no hay clave guardada en la sesión del navegador. Al enviar, la UI SHALL llamar a `POST /api/admin/verify`; si responde 200, la UI guarda la clave en `sessionStorage` y muestra el formulario de nueva partida; si responde 401, la UI muestra un mensaje de error y mantiene la pantalla de acceso.

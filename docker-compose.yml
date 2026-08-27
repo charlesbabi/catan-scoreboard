@@ -4,7 +4,7 @@ services:
     ports:
       - "3001:3001"
     volumes:
-      - ./backend/data:/app/data
+      - catan-data:/app/data
     restart: unless-stopped
   frontend:
     build: ./frontend
@@ -13,3 +13,6 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  catan-data:
