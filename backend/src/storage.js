@@ -79,5 +79,13 @@ export function createStore(filePath) {
       writeDoc(doc)
       return season
     },
+    deleteGame(id) {
+      const doc = readDoc()
+      const idx = doc.games.findIndex((g) => g.id === id)
+      if (idx === -1) return null
+      const [deleted] = doc.games.splice(idx, 1)
+      writeDoc(doc)
+      return deleted
+    },
   }
 }

@@ -162,3 +162,34 @@ test('seasons: crear temporada no afecta la lectura de partidas ni de adminKeyHa
     await cleanup()
   }
 })
+
+test('deleteGame: elimina partida existente, devuelve la partida y reescribe conservando seasons y adminKeyHash', async () => {
+  const { store, cleanup } = await tmpStore()
+  try {
+    store.addSeason({ name: 'Temporada 2026-1' })
+    const before = store.getGames()
+    const target = before[1]
+    const deleted = store.deleteGame(target.id)
+    assert.deepEqual(deleted, target, 'debe devolver la partida eliminada')
+    const raw = JSON.parse(await readFile(store.path, 'utf8'))
+    assert.equal(raw.games.length, before.length - 1, 'el archivo debe quedar con una partida menos')
+    assert.ok(!raw.games.some(g => g.id === target.id), 'la partida eliminada no debe estar en el archivo')
+    assert.deepEqual(raw.seasons, [{ id: 1, name: 'Temporada 2026-1' }], 'seasons deben conservarse')
+    assert.ok(typeof raw.adminKeyHash === 'string', 'adminKeyHash debe conservarse')
+    assert.deepEqual(store.getGames(), before.filter(g => g.id !== target.id))
+  } finally {
+    await cleanup()
+  }
+})
+
+test('deleteGame: id inexistente devuelve null y no modifica el archivo', async () => {
+  const { store, cleanup } = await tmpStore()
+  try {
+    const beforeRaw = await readFile(store.path, 'utf8')
+    const deleted = store.deleteGame(999)
+    assert.equal(deleted, null)
+    assert.equal(await readFile(store.path, 'utf8'), beforeRaw, 'el archivo no debe modificarse')
+  } finally {
+    await cleanup()
+  }
+})

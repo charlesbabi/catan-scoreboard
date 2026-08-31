@@ -97,3 +97,73 @@ test('POST /api/games con body no JSON responde 400', async () => {
     assert.ok(typeof (await res.json()).error === 'string')
   })
 })
+
+test('DELETE /api/games/:id elimina la partida con clave válida (200)', async () => {
+  await withServer(async (base) => {
+    const games = await (await fetch(`${base}/api/games`)).json()
+    const target = games[games.length - 1]
+    const res = await fetch(`${base}/api/games/${target.id}`, {
+      method: 'DELETE',
+      headers: { 'x-admin-key': 'catan' },
+    })
+    assert.equal(res.status, 200)
+    assert.deepEqual(await res.json(), { ok: true })
+    const after = await (await fetch(`${base}/api/games`)).json()
+    assert.equal(after.length, games.length - 1, 'la partida debe quedar eliminada')
+    assert.ok(!after.some((g) => g.id === target.id))
+  })
+})
+
+test('DELETE /api/games/:id sin clave responde 401 y no elimina', async () => {
+  await withServer(async (base) => {
+    const before = (await (await fetch(`${base}/api/games`)).json()).length
+    const res = await fetch(`${base}/api/games/1`, { method: 'DELETE' })
+    assert.equal(res.status, 401)
+    assert.ok(typeof (await res.json()).error === 'string')
+    const after = await (await fetch(`${base}/api/games`)).json()
+    assert.equal(after.length, before, 'no debe eliminarse nada')
+  })
+})
+
+test('DELETE /api/games/:id con clave inválida responde 401 (no 404)', async () => {
+  await withServer(async (base) => {
+    const res = await fetch(`${base}/api/games/999`, {
+      method: 'DELETE',
+      headers: { 'x-admin-key': 'clave-incorrecta' },
+    })
+    assert.equal(res.status, 401)
+  })
+})
+
+test('DELETE /api/games/:id clave válida e id inexistente responde 404', async () => {
+  await withServer(async (base) => {
+    const res = await fetch(`${base}/api/games/999`, {
+      method: 'DELETE',
+      headers: { 'x-admin-key': 'catan' },
+    })
+    assert.equal(res.status, 404)
+    assert.ok(typeof (await res.json()).error === 'string')
+  })
+})
+
+test('DELETE /api/games/:id clave válida e id no numérico responde 404', async () => {
+  await withServer(async (base) => {
+    const res = await fetch(`${base}/api/games/abc`, {
+      method: 'DELETE',
+      headers: { 'x-admin-key': 'catan' },
+    })
+    assert.equal(res.status, 404)
+  })
+})
+
+test('CORS: Access-Control-Allow-Methods incluye DELETE', async () => {
+  await withServer(async (base) => {
+    const res = await fetch(`${base}/api/games/1`, {
+      method: 'OPTIONS',
+      headers: { 'Access-Control-Request-Method': 'DELETE', 'Access-Control-Request-Headers': 'X-Admin-Key' },
+    })
+    assert.equal(res.status, 204)
+    assert.match(res.headers.get('access-control-allow-methods'), /DELETE/)
+    assert.match(res.headers.get('access-control-allow-headers'), /X-Admin-Key/i)
+  })
+})

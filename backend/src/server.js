@@ -6,7 +6,7 @@ import { sha256 } from './storage.js'
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Key')
 }
 
@@ -183,6 +183,21 @@ export function createServer(store) {
         return
       }
       sendJson(res, 201, store.addSeason({ name: payload.name.trim() }))
+      return
+    }
+
+    if (req.method === 'DELETE' && /^\/api\/games\/\d+$/.test(pathname)) {
+      const key = req.headers['x-admin-key']
+      if (!keyMatches(store.getAdminKeyHash(), key)) {
+        sendJson(res, 401, { error: 'Clave de administrador requerida' })
+        return
+      }
+      const id = Number(pathname.split('/').pop())
+      if (store.deleteGame(id) === null) {
+        sendJson(res, 404, { error: 'Partida no encontrada' })
+        return
+      }
+      sendJson(res, 200, { ok: true })
       return
     }
 

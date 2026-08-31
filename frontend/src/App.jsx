@@ -5,6 +5,7 @@ import { getSessionKey, clearSessionKey } from './lib/session.js'
 import { SeasonSelect, useSeasons, latestSeasonId } from './components/SeasonPicker.jsx'
 import KeyGate from './components/KeyGate.jsx'
 import NewGameForm from './components/NewGameForm.jsx'
+import GamesSection from './components/GamesSection.jsx'
 import SeasonsSection from './components/SeasonsSection.jsx'
 import ChangeKeySection from './components/ChangeKeySection.jsx'
 
@@ -110,6 +111,7 @@ function PublicView() {
   const [selected, setSelected] = useState(null)
   const seasonId = seasons === null ? undefined : selected ?? latestSeasonId(seasons)
   const { scoreboard, games, error } = useApiData(seasonId)
+
   return (
     <>
       <div class="topbar">
@@ -148,6 +150,7 @@ function ProtectedView() {
       <Link to="/" class="back-link">← Volver al scoreboard</Link>
       <KeyGate key={gateNonce}>
         <NewGameForm adminKey={getSessionKey()} onKeyInvalid={handleKeyInvalid} onSaved={refresh} />
+        <GamesSection adminKey={getSessionKey()} onKeyInvalid={handleKeyInvalid} />
         <SeasonsSection adminKey={getSessionKey()} onKeyInvalid={handleKeyInvalid} />
         <ChangeKeySection />
       </KeyGate>

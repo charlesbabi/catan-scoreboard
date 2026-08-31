@@ -44,6 +44,13 @@ export function postGame(key, { date, players, seasonId }) {
   })
 }
 
+export function deleteGame(key, id) {
+  return request(`/api/games/${id}`, {
+    method: 'DELETE',
+    headers: { 'x-admin-key': key },
+  })
+}
+
 export function verifyKey(key) {
   return request('/api/admin/verify', {
     method: 'POST',
