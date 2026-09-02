@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { postGame } from '../lib/api.js'
 import { validateForm } from '../lib/validateForm.js'
+import { getSessionKey } from '../lib/session.js'
 import { SeasonSelect, useSeasons, latestSeasonId } from './SeasonPicker.jsx'
 
-export default function NewGameForm({ adminKey, onKeyInvalid, onSaved }) {
+export default function NewGameForm({ onKeyInvalid, onSaved }) {
   const [date, setDate] = useState('')
   const seasons = useSeasons()
   const [selected, setSelected] = useState(null)
@@ -21,7 +22,7 @@ export default function NewGameForm({ adminKey, onKeyInvalid, onSaved }) {
       return
     }
     try {
-      await postGame(adminKey, {
+      await postGame(getSessionKey(), {
         date: date.trim() || undefined,
         seasonId: seasons?.length ? (selected ?? latestSeasonId(seasons)) : undefined,
         players: rows.map((r) => ({ name: r.name.trim(), points: Number(r.points.trim()) })),

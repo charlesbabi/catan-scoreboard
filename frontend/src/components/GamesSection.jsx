@@ -1,32 +1,20 @@
-import { useCallback, useEffect, useState } from 'react'
-import { fetchGames, deleteGame } from '../lib/api.js'
+import { useState } from 'react'
+import { deleteGame } from '../lib/api.js'
+import { getSessionKey } from '../lib/session.js'
 import ConfirmModal from './ConfirmModal.jsx'
 
-export default function GamesSection({ adminKey, onKeyInvalid }) {
-  const [games, setGames] = useState(null)
+export default function GamesSection({ games, onDeleted, onKeyInvalid }) {
   const [status, setStatus] = useState(null)
   const [pendingGame, setPendingGame] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
-  const refresh = useCallback(async () => {
-    try {
-      setGames(await fetchGames())
-    } catch {
-      setGames([])
-    }
-  }, [])
-
-  useEffect(() => {
-    refresh()
-  }, [refresh])
-
   async function handleDelete() {
     setDeleting(true)
     try {
-      await deleteGame(adminKey, pendingGame.id)
+      await deleteGame(getSessionKey(), pendingGame.id)
       setPendingGame(null)
       setStatus({ type: 'ok', text: 'Partida eliminada' })
-      refresh()
+      onDeleted()
     } catch (err) {
       if (err.status === 401) {
         onKeyInvalid()

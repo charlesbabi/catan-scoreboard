@@ -47,11 +47,15 @@ El frontend SHALL consultar `GET /api/games` con la misma resolución de tempora
 - **AND** al cambiar la selección, el historial se actualiza con las partidas de la nueva temporada
 
 ### Requirement: Registrar nueva partida desde la UI
-El frontend SHALL mostrar el formulario para registrar una nueva partida (fecha opcional, temporada y una lista dinámica de filas jugador/puntaje) únicamente en la URL `/nueva-partida`, tras el acceso con la clave de administrador. Si existen temporadas, el formulario SHALL incluir un selector de temporada cargado con `GET /api/seasons`, con la más reciente seleccionada por defecto. Al enviar, la UI SHALL llamar a `POST /api/games` incluyendo la clave en el header `X-Admin-Key` y el `seasonId` de la temporada seleccionada en el body (omitido si no hay temporadas); en éxito, refrescar el scoreboard y el historial. La pantalla pública (`/`) no incluirá el formulario de registro; en su lugar enlazará a `/nueva-partida`.
+El frontend SHALL mostrar el formulario para registrar una nueva partida (fecha opcional, temporada y una lista dinámica de filas jugador/puntaje) únicamente en la URL `/nueva-partida`, tras el acceso con la clave de administrador. Si existen temporadas, el formulario SHALL incluir un selector de temporada cargado con `GET /api/seasons`, con la más reciente seleccionada por defecto. Al enviar, la UI SHALL llamar a `POST /api/games` incluyendo la clave en el header `X-Admin-Key` y el `seasonId` de la temporada seleccionada en el body (omitido si no hay temporadas); en éxito, refrescar el scoreboard, el historial y la lista de partidas del panel de administración, de modo que la nueva partida aparezca en la sección "Partidas" sin recargar la página. La pantalla pública (`/`) no incluirá el formulario de registro; en su lugar enlazará a `/nueva-partida`.
 
 #### Scenario: Registro exitoso
 - **WHEN** el usuario autenticado agrega 2 filas (nombre + puntaje), las completa y envía
 - **THEN** la UI muestra confirmación de éxito, el scoreboard y el historial se actualizan con la nueva partida y el formulario se limpia
+
+#### Scenario: Registro visible en el panel sin recargar
+- **WHEN** el usuario autenticado registra una partida y el envío es exitoso
+- **THEN** la sección "Partidas" del panel muestra la nueva partida de inmediato, sin necesidad de recargar la página
 
 #### Scenario: Formulario con temporadas
 - **WHEN** el usuario autenticado abre `/nueva-partida` y existen 2 temporadas
@@ -86,7 +90,7 @@ El sistema SHALL incluir un `docker-compose.yml` en la raíz que levanta el back
 - **THEN** las partidas y temporadas registradas previamente siguen presentes en la UI
 
 ### Requirement: Pantalla de clave de administrador
-La URL `/nueva-partida` SHALL mostrar primero una pantalla de acceso con un campo de clave cuando no hay clave guardada en la sesión del navegador. Al enviar, la UI SHALL llamar a `POST /api/admin/verify`; si responde 200, la UI guarda la clave en `sessionStorage` y muestra el formulario de nueva partida; si responde 401, la UI muestra un mensaje de error y mantiene la pantalla de acceso.
+La URL `/nueva-partida` SHALL mostrar primero una pantalla de acceso con un campo de clave cuando no hay clave guardada en la sesión del navegador. Al enviar, la UI SHALL llamar a `POST /api/admin/verify`; si responde 200, la UI guarda la clave en `sessionStorage` y muestra el formulario de nueva partida; si responde 401, la UI muestra un mensaje de error y mantiene la pantalla de acceso. Todas las operaciones de administración (registrar partida, eliminar partida, crear temporada) SHALL incluir en el header `X-Admin-Key` la clave actualmente guardada en la sesión, leída en el momento de realizar la petición; de modo que, tras el acceso exitoso por la pantalla de clave, la primera operación admin de la visita use la clave recién verificada y no una clave nula o capturada antes del acceso.
 
 #### Scenario: Acceso con clave correcta
 - **WHEN** el usuario entra en `/nueva-partida` sin clave en sesión y envía la clave correcta
@@ -99,6 +103,10 @@ La URL `/nueva-partida` SHALL mostrar primero una pantalla de acceso con un camp
 #### Scenario: Clave en sesión
 - **WHEN** el usuario entra en `/nueva-partida` con una clave ya guardada en `sessionStorage`
 - **THEN** la UI muestra directamente el formulario de nueva partida, sin pantalla de clave
+
+#### Scenario: Primera operación admin tras el acceso
+- **WHEN** el usuario accede con la clave correcta y, sin recargar la página, registra una partida o confirma una eliminación
+- **THEN** la petición incluye `X-Admin-Key` con esa clave y la API no responde 401 por clave inválida
 
 #### Scenario: Clave invalidada por la API
 - **WHEN** el usuario envía una partida y la API responde 401 (clave cambiada o incorrecta)

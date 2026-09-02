@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, Route, Routes } from 'react-router-dom'
 import { fetchScoreboard, fetchGames } from './lib/api.js'
-import { getSessionKey, clearSessionKey } from './lib/session.js'
+import { clearSessionKey } from './lib/session.js'
 import { SeasonSelect, useSeasons, latestSeasonId } from './components/SeasonPicker.jsx'
 import KeyGate from './components/KeyGate.jsx'
 import NewGameForm from './components/NewGameForm.jsx'
@@ -138,7 +138,7 @@ function PublicView() {
 
 function ProtectedView() {
   const [gateNonce, setGateNonce] = useState(0)
-  const { refresh } = useApiData(null)
+  const { games, refresh } = useApiData(null)
 
   const handleKeyInvalid = () => {
     clearSessionKey()
@@ -149,9 +149,9 @@ function ProtectedView() {
     <div class="protected">
       <Link to="/" class="back-link">← Volver al scoreboard</Link>
       <KeyGate key={gateNonce}>
-        <NewGameForm adminKey={getSessionKey()} onKeyInvalid={handleKeyInvalid} onSaved={refresh} />
-        <GamesSection adminKey={getSessionKey()} onKeyInvalid={handleKeyInvalid} />
-        <SeasonsSection adminKey={getSessionKey()} onKeyInvalid={handleKeyInvalid} />
+        <NewGameForm onKeyInvalid={handleKeyInvalid} onSaved={refresh} />
+        <GamesSection games={games} onDeleted={refresh} onKeyInvalid={handleKeyInvalid} />
+        <SeasonsSection onKeyInvalid={handleKeyInvalid} />
         <ChangeKeySection />
       </KeyGate>
     </div>

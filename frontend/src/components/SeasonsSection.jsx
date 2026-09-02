@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchSeasons, postSeason } from '../lib/api.js'
+import { getSessionKey } from '../lib/session.js'
 
-export default function SeasonsSection({ adminKey, onKeyInvalid }) {
+export default function SeasonsSection({ onKeyInvalid }) {
   const [seasons, setSeasons] = useState(null)
   const [name, setName] = useState('')
   const [status, setStatus] = useState(null)
@@ -26,7 +27,7 @@ export default function SeasonsSection({ adminKey, onKeyInvalid }) {
       return
     }
     try {
-      await postSeason(adminKey, trimmed)
+      await postSeason(getSessionKey(), trimmed)
       setName('')
       setStatus({ type: 'ok', text: 'Temporada creada' })
       refresh()
